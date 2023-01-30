@@ -1,23 +1,11 @@
----
-- name: Check disk space usage in /u01
+- name: Alert when disk space usage exceeds 90%
   hosts: all
-  gather_facts: yes
   tasks:
-  - name: Get disk space usage of /u01
-    shell: df -h /u01 | awk 'NR==2 {print $5}'
-    register: disk_usage
+    - name: Check disk space usage
+      shell: df -h /u01 | awk '{print $5}' | grep -o '[0-9]*'
+      register: disk_usage
 
-  - name: Check if disk space usage is over 90%
-    shell: |
-      usage=$(echo "{{ disk_usage.stdout }}" | sed 's/%//g')
-      [ $usage -gt 90 ] && echo "Disk usage is over 90%"
-    register: disk_alert
-
-  - name: Send Disk Space Alert
-    when: disk_alert.stdout
-    mail:
-      host: localhost
-      port: 25
-      to: admin@example.com
-      subject: Disk Space Alert for /u01
-      body: "{{ disk_alert.stdout }}"
+    - name: Trigger alert when disk usage exceeds 90%
+      fail:
+        msg: "ERROR: Disk space usage in /u01 exceeds 90%!"
+      when: disk_usage.stdout | int > 90
