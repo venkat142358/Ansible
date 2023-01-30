@@ -1,0 +1,28 @@
+---
+- name: Check Disk Space Usage
+  hosts: all
+  gather_facts: yes
+  tasks:
+  - name: Get Disk Space Usage
+    shell: df -h | awk '{print $5 " " $1}'
+    register: disk_usage
+
+  - name: Check if Disk Space is over 90%
+    shell: |
+      usage=$(echo "{{ item.split()[0] }}" | sed 's/%//g')
+      [ $usage -gt 90 ] && echo "{{ item }}"
+    loop: "{{ disk_usage.stdout_lines }}"
+    register: disk_alert
+
+  - name: Send Disk Space Alert
+    when: disk_alert.stdout_lines
+    mail:
+      host: localhost
+      port: 25
+      to: admin@example.com
+      subject: Disk Space Alert
+      body: |
+        The following disk(s) have over 90% usage:
+        {% for line in disk_alert.stdout_lines %}
+        {{ line }}
+        {% endfor %}
