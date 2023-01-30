@@ -1,0 +1,14 @@
+- name: Alert when disk space usage exceeds 90%
+  hosts: all
+  tasks:
+    - name: Check disk space usage
+      shell: df -h /u01 | awk '{print $5}' | grep -o '[0-9]*'
+      register: disk_usage
+
+    - name: Trigger alert and send email when disk usage exceeds 90%
+      local_action:
+        module: mail        
+        mail: venkatarayapaneni@maximus.com
+        subject: "High disk space usage in /u01"
+        body: "ERROR: Disk space usage in /u01 has exceeded 90%. Please take immediate action to resolve this issue."
+      when: disk_usage.stdout | int > 90
